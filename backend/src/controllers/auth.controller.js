@@ -36,7 +36,7 @@ export async function signup(req, res) {
     });
 
    try {
-      await upsertStreamUser({
+      await upsertStreamUser({ 
         id: newUser._id.toString(),
         name: newUser.fullName,
         image: newUser.profilePic || "",
@@ -100,3 +100,64 @@ export function logout(req, res) {
   res.clearCookie("jwt"); //clear cookie named jwt
   res.status(200).json({ success: true, message: "Logout successful" }); // send success response
 }
+
+// This function handles the onboarding process for a user
+export async function onboard(req, res) {
+  try {
+    // Extract the logged-in user's ID from the request object (usually set by middleware like auth)
+    const userId = req.user._id;
+
+    // Destructure the required fields from the request body
+    const { fullName, bio, nativeLanguage, learningLanguage, location } = req.body;
+
+    // Check if any of the required fields are missing
+    if (!fullName || !bio || !nativeLanguage || !learningLanguage || !location) {
+      return res.status(400).json({
+        message: "All fields are required",
+        // Create a list of the specific missing fields to send back to the client
+        missingFields: [
+          !fullName && "fullName",
+          !bio && "bio",
+          !nativeLanguage && "nativeLanguage",
+          !learningLanguage && "learningLanguage",
+          !location && "location",
+        ].filter(Boolean), // Filters out any false values
+      });
+    }
+
+    // Update the user in the database using their ID
+    // This sets all fields from req.body and marks them as onboarded
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,                         // Which user to update
+      {
+        ...req.body,                  // Update all fields passed in the request
+        isOnboarded: true,            // Mark the user as having completed onboarding
+      },
+      { new: true }                   // Return the updated document instead of the old one
+    );
+
+    // If no user was found with that ID, return a 404 error
+    if (!updatedUser) return res.status(404).json({ message: "User not found" });
+
+    // Try to update the user info in a third-party service called "Stream"
+    try {
+      await upsertStreamUser({
+        id: updatedUser._id.toString(),         // Stream requires the user ID as a string
+        name: updatedUser.fullName,             // Display name
+        image: updatedUser.profilePic || "",    // Profile picture or fallback to empty string
+      });
+      console.log(`Stream user updated after onboarding for ${updatedUser.fullName}`);
+    } catch (streamError) {
+      // Catch and log any error that happens when updating the Stream user
+      console.log("Error updating Stream user during onboarding:", streamError.message);
+    }
+
+    // If everything succeeds, return a success response with the updated user data
+    res.status(200).json({ success: true, user: updatedUser });
+  } catch (error) {
+    // Catch and log any general errors that occur during the onboarding process
+    console.error("Onboarding error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
