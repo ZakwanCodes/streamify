@@ -9,11 +9,24 @@ import SignUpPage from "./pages/SignUpPage.jsx";
 import toast from "react-hot-toast";
 
 import {Toaster} from "react-hot-toast";
+import {useState, useEffect} from "react";
+import {useQuery} from "@tanstack/react-query";
+import Axios from "axios";
+import { axiosInstance } from "./lib/axio.js";
 
 
 const App = () => {
-  return <div class="h-screen" data-theme="night"> 
-      <button onClick={() => toast.success("Hello World")}>Create a Toast</button>
+  //tanstack query
+  const {data, isLoading, error} = useQuery({
+    queryKey: ["todos"],
+    queryFn: async() => {
+      const res = await axiosInstance.get("http://localhost:5001/api/auth/me");
+      return res.data;
+    },
+  });
+
+
+  return <div className="h-screen" data-theme="night"> 
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/signup" element={<SignUpPage />} />
