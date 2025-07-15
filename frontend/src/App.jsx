@@ -7,6 +7,7 @@ import NotificationsPage from "./pages/NotificationsPage.jsx";
 import CallPage from "./pages/CallPage.jsx";
 import ChatPage from "./pages/ChatPage.jsx";
 import OnboardingPage from "./pages/OnboardingPage.jsx";
+import FriendsPage from "./pages/Friends.jsx"; // ✅ NEW
 
 import { Toaster } from "react-hot-toast";
 
@@ -25,7 +26,7 @@ const App = () => {
   if (isLoading) return <PageLoader />;
 
   return (
-    <div className="h-screen" data-theme={theme}>
+    <div className="min-h-screen bg-base-100" data-theme={theme}>
       <Routes>
         <Route
           path="/"
@@ -64,6 +65,18 @@ const App = () => {
           }
         />
         <Route
+          path="/friends"
+          element={
+            isAuthenticated && isOnboarded ? (
+              <Layout showSidebar={true}>
+                <FriendsPage />
+              </Layout>
+            ) : (
+              <Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />
+            )
+          }
+        />
+        <Route
           path="/call/:id"
           element={
             isAuthenticated && isOnboarded ? (
@@ -73,7 +86,6 @@ const App = () => {
             )
           }
         />
-
         <Route
           path="/chat/:id"
           element={
@@ -86,7 +98,6 @@ const App = () => {
             )
           }
         />
-
         <Route
           path="/onboarding"
           element={
@@ -107,4 +118,5 @@ const App = () => {
     </div>
   );
 };
+
 export default App;
